@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Admission</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        h1 { text-align: center; }
+        form { margin-bottom: 20px; }
+        input, select, textarea { width: 100%; padding: 8px; margin: 5px 0 15px; }
+        button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        #refreshBtn { background: #2196F3; }
+        #clearBtn { background: #607D8B; }
+        .app-card { border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+        .delete-btn { background: #f44336; float: right; }
+        .edit-btn { background: #2196F3; float: right; margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <h1>College Admission Portal</h1>
+
+    <!-- Application Form -->
+    <form id="applicationForm">
+        <input type="hidden" id="applicationId">
+        <label>Name</label>
+        <input type="text" id="name">
+        
+        <label>Email</label>
+        <input type="email" id="email">
+        
+        <label>Phone</label>
+        <input type="text" id="phone">
+        
+        <label>Course</label>
+        <select id="course">
+            <option value="">Select</option>
+            <option>Computer Science</option>
+            <option>Engineering</option>
+            <option>Business</option>
+            <option>Medicine</option>
+            <option>Arts</option>
+        </select>
+        
+        <label>Qualifications</label>
+        <textarea id="qualifications" rows="3"></textarea>
+        
+        <button type="submit" id="submitBtn">Submit</button>
+        <button type="button" id="clearBtn">Clear</button>
+        <button type="button" id="refreshBtn">Refresh List</button>
+    </form>
+
+    <!-- Applications List -->
+    <h2>Applications</h2>
+    <div id="applicationsList"></div>
+
+    <script>
+        // Load applications
+        function loadApplications() {
+            fetch('/api/applications')
+                .then(res => res.json())
+                .then(apps => {
+                    const list = document.getElementById('applicationsList');
+                    list.innerHTML = '';
+                    
+                    apps.forEach(app => {
+                        const div = document.createElement('div');
+                        div.className = 'app-card';
+                        div.innerHTML = `
+                            <button class="delete-btn" onclick="deleteApp('${app._id}')">Delete</button>
+                            <button class="edit-btn" onclick="editApp('${app._id}')">Edit</button>
+                            <h3>${app.name}</h3>
+                            <p>Course: ${app.course}</p>
+                            <p>Email: ${app.email}</p>
+                            <p>Status: ${app.status}</p>
+                        `;
+                        list.appendChild(div);
+                    });
+                });
+        }
+
+        // Form submit handler
+        document.getElementById('applicationForm').onsubmit = function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                course: document.getElementById('course').value,
+                qualifications: document.getElementById('qualifications').value
+            };
+            
+            const id = document.getElementById('applicationId').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/applications/${id}` : '/api/applications';
+            
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(() => {
+                document.getElementById('applicationForm').reset();
+                document.getElementById('applicationId').value = '';
+                document.getElementById('submitBtn').textContent = 'Submit';
+                loadApplications();
+            });
+        };
+
+        // Edit function
+        window.editApp = function(id) {
+            fetch(`/api/applications/${id}`)
+                .then(res => res.json())
+                .then(app => {
+                    document.getElementById('applicationId').value = app._id;
+                    document.getElementById('name').value = app.name;
+                    document.getElementById('email').value = app.email;
+                    document.getElementById('phone').value = app.phone;
+                    document.getElementById('course').value = app.course;
+                    document.getElementById('qualifications').value = app.qualifications;
+                    document.getElementById('submitBtn').textContent = 'Update';
+                });
+        };
+
+        // Delete function
+        window.deleteApp = function(id) {
+            if (confirm('Delete this application?')) {
+                fetch(`/api/applications/${id}`, { method: 'DELETE' })
+                    .then(() => loadApplications());
+            }
+        };
+
+        // Clear form
+        document.getElementById('clearBtn').onclick = function() {
+            document.getElementById('applicationForm').reset();
+            document.getElementById('applicationId').value = '';
+            document.getElementById('submitBtn').textContent = 'Submit';
+        };
+
+        // Refresh button
+        document.getElementById('refreshBtn').onclick = loadApplications;
+
+        // Initial load
+        loadApplications();
+    </script>
+</body>
+</html>
